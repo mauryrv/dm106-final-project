@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<parameters>
+  <parameter name="DefaultConnection-Web.config Connection String" description="DefaultConnection A Cadeia de Conexão usada em web.config pelo aplicativo para acessar o banco de dados." defaultValue="Data Source=(LocalDb)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\aspnet-dm106-final-project-20170826013607.mdf;Initial Catalog=aspnet-dm106-final-project-20170826013607;Integrated Security=True" tags="SqlConnectionString">
+    <parameterEntry kind="XmlFile" scope="D:\\DM106\\dm106-final-project\\dm106-final-project\\obj\\Release\\Package\\PackageTmp\\Web\.config$" match="/configuration/connectionStrings/add[@name='DefaultConnection']/@connectionString" />
+  </parameter>
+  <parameter name="dm106_final_projectContext-Web.config Connection String" description="dm106_final_projectContext A Cadeia de Conexão usada em web.config pelo aplicativo para acessar o banco de dados." defaultValue="Data Source=(localdb)\MSSQLLocalDB; Initial Catalog=dm106_final_projectContext-20170829201503; Integrated Security=True; MultipleActiveResultSets=True; AttachDbFilename=|DataDirectory|dm106_final_projectContext-20170829201503.mdf" tags="SqlConnectionString">
+    <parameterEntry kind="XmlFile" scope="D:\\DM106\\dm106-final-project\\dm106-final-project\\obj\\Release\\Package\\PackageTmp\\Web\.config$" match="/configuration/connectionStrings/add[@name='dm106_final_projectContext']/@connectionString" />
+  </parameter>
+  <parameter name="dm106_final_projectContext_DatabasePublish-Web.config Connection String" description="dm106_final_projectContext_DatabasePublish A Cadeia de Conexão usada em web.config pelo aplicativo para acessar o banco de dados." defaultValue="dm106_final_projectContext_DatabasePublish.ConnetionString" tags="SqlConnectionString">
+    <parameterEntry kind="XmlFile" scope="D:\\DM106\\dm106-final-project\\dm106-final-project\\obj\\Release\\Package\\PackageTmp\\Web\.config$" match="/configuration/connectionStrings/add[@name='dm106_final_projectContext_DatabasePublish']/@connectionString" />
+  </parameter>
+</parameters>
