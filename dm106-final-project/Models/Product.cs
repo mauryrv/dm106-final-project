@@ -21,7 +21,6 @@ namespace dm106_final_project.Models
         public string modelo { get; set; }
 
         [Required(ErrorMessage = "O campo código é obrigatório")]
-        //[StringLength(8, ErrorMessage = "O tamanho máximo do código é 8 caracteres")]
         public string codigo { get; set; }
         public decimal preco { get; set; }
         public decimal peso { get; set; }

@@ -37,6 +37,7 @@ namespace dm106_final_project.Controllers
         }
 
         // PUT: api/Products/5
+        [Authorize(Roles = "ADMIN")]
         [ResponseType(typeof(void))]
         public IHttpActionResult PutProduct(int id, Product product)
         {
@@ -46,6 +47,13 @@ namespace dm106_final_project.Controllers
             }
 
             if (id != product.Id)
+            {
+                return BadRequest();
+            }
+
+            //checar se valor do codigo ou modelo já existe
+            IEnumerable<Product> productExist = db.Products.Where(c => (c.codigo == product.codigo || c.modelo == product.modelo) && c.Id != id);
+            if (productExist.Any())
             {
                 return BadRequest();
             }
@@ -79,6 +87,13 @@ namespace dm106_final_project.Controllers
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            //checar se valor do codigo ou modelo já existe
+            IEnumerable<Product> productExist = db.Products.Where(c => c.codigo == product.codigo || c.modelo == product.modelo);
+            if (productExist.Any())
+            {
+                return BadRequest();
             }
 
             db.Products.Add(product);

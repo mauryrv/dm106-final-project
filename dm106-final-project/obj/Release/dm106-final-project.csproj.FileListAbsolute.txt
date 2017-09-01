@@ -105,3 +105,5 @@ D:\DM106\dm106-final-project\dm106-final-project\obj\Release\dm106-final-project
 D:\DM106\dm106-final-project\dm106-final-project\obj\Release\dm106-final-project.dll
 D:\DM106\dm106-final-project\dm106-final-project\obj\Release\dm106-final-project.pdb
 D:\DM106\dm106-final-project\dm106-final-project\obj\Release\dm106-final-project.csprojResolveAssemblyReference.cache
+D:\DM106\dm106-final-project\dm106-final-project\bin\dm106-final-project.XmlSerializers.dll
+D:\DM106\dm106-final-project\dm106-final-project\obj\Release\dm106-final-project.XmlSerializers.dll
