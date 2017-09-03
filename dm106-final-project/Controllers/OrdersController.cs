@@ -9,14 +9,19 @@ using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.Description;
 using dm106_final_project.Models;
+using Microsoft.AspNet.Identity;
+using System.Web;
 
 namespace dm106_final_project.Controllers
 {
+    [Authorize]
+    [RoutePrefix("api/orders")]
     public class OrdersController : ApiController
     {
         private dm106_final_projectContext db = new dm106_final_projectContext();
 
         // GET: api/Orders
+        [Authorize(Roles = "ADMIN")]
         public IQueryable<Order> GetOrders()
         {
             return db.Orders;
@@ -27,12 +32,53 @@ namespace dm106_final_project.Controllers
         public IHttpActionResult GetOrder(int id)
         {
             Order order = db.Orders.Find(id);
+
             if (order == null)
             {
                 return NotFound();
             }
 
-            return Ok(order);
+            var usrID = HttpContext.Current.User.Identity.GetUserId();
+            ApplicationDbContext dbContext = new ApplicationDbContext();
+            var mailUserLogged = dbContext.Users.Find(usrID).Email;
+
+            if (mailUserLogged == order.userMail || User.IsInRole("ADMIN"))
+            {
+
+                return Ok(order);
+            }
+            else
+            {
+                return StatusCode(HttpStatusCode.Forbidden);
+            }
+        }
+
+        [ResponseType(typeof(List<Order>))]
+        [HttpGet]
+        [Route("byEmail")]
+        public IHttpActionResult GetOrderbyEmail(string email)
+        {
+            List<Order> orders = new List<Order>();
+            orders = db.Orders.Where(c => c.userMail == email).ToList(); ;
+
+            if (orders.Count == 0)
+            {
+                return NotFound();
+            }
+
+            var usrID = HttpContext.Current.User.Identity.GetUserId();
+            ApplicationDbContext dbContext = new ApplicationDbContext();
+            var mailUserLogged = dbContext.Users.Find(usrID).Email;
+
+            if (mailUserLogged == orders[0].userMail || User.IsInRole("ADMIN"))
+            {
+
+                return Ok(orders);
+            }
+            else
+            {
+                return StatusCode(HttpStatusCode.Forbidden);
+            }
         }
 
         // PUT: api/Orders/5
