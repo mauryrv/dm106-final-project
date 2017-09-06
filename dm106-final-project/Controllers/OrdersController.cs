@@ -16,7 +16,7 @@ using dm106_final_project.br.com.correios.ws;
 
 namespace dm106_final_project.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "ADMIN, USER")]
     [RoutePrefix("api/orders")]
     public class OrdersController : ApiController
     {
@@ -37,7 +37,7 @@ namespace dm106_final_project.Controllers
 
             if (order == null)
             {
-                return NotFound();
+                return BadRequest("Pedido não encontrado!");
             }
 
             var usrID = HttpContext.Current.User.Identity.GetUserId();
@@ -51,7 +51,7 @@ namespace dm106_final_project.Controllers
             }
             else
             {
-                return StatusCode(HttpStatusCode.Forbidden);
+                return BadRequest("Acesso negado!");
             }
         }
 
@@ -65,7 +65,7 @@ namespace dm106_final_project.Controllers
 
             if (orders.Count == 0)
             {
-                return NotFound();
+                return BadRequest("Não há pedidos para o email pesquisado!");
             }
 
             var usrID = HttpContext.Current.User.Identity.GetUserId();
@@ -79,7 +79,7 @@ namespace dm106_final_project.Controllers
             }
             else
             {
-                return StatusCode(HttpStatusCode.Forbidden);
+                return BadRequest("Acesso negado!");
             }
         }
 
@@ -114,8 +114,8 @@ namespace dm106_final_project.Controllers
                     throw;
                 }
             }
-
-            return StatusCode(HttpStatusCode.NoContent);
+            return BadRequest("Pedido atualizado!");
+            //return StatusCode(HttpStatusCode.NoContent);
         }
 
         // POST: api/Orders
@@ -146,13 +146,13 @@ namespace dm106_final_project.Controllers
         }
 
         // DELETE: api/Orders/5
-        [ResponseType(typeof(Order))]
+        [ResponseType(typeof(string))]
         public IHttpActionResult DeleteOrder(int id)
         {
             Order order = db.Orders.Find(id);
             if (order == null)
             {
-                return NotFound();
+                return BadRequest("Pedido não encontrado!");
             }
 
 
@@ -166,15 +166,16 @@ namespace dm106_final_project.Controllers
                 db.Orders.Remove(order);
                 db.SaveChanges();
 
-                return Ok(order);
+                return Ok("Pedido deletado!");
             }
             else
             {
-                return StatusCode(HttpStatusCode.Forbidden);
+                return BadRequest("Acesso negado!");
+
             }
 
 
-          
+
         }
         [ResponseType(typeof(string))]
         [HttpPut]
@@ -185,7 +186,7 @@ namespace dm106_final_project.Controllers
             Order order = db.Orders.Find(id);
             if (order == null)
             {
-                return NotFound();
+                return BadRequest("Pedido não encontrado!");
             }
 
             var usrID = HttpContext.Current.User.Identity.GetUserId();
@@ -194,25 +195,36 @@ namespace dm106_final_project.Controllers
 
             if (mailUserLogged == order.userMail || User.IsInRole("ADMIN"))
             {
-                if(order.precoFrete!=0)
+                if (order.precoFrete != 0)
                 {
                     order.status = "fechado";
+                    db.Entry(order).State = EntityState.Modified;
 
-                    PutOrder(id, order);
-                    order = db.Orders.Find(id);
+                    try
+                    {
+                        db.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        if (!OrderExists(id))
+                        {
+                            return NotFound();
+                        }
+                    }
 
-                    return Ok(order);
+                    return Ok("Pedido fechado!");
                 }
                 else
                 {
                     return BadRequest("Frete não calculado!");
 
                 }
-               
+
             }
             else
             {
-                return StatusCode(HttpStatusCode.Forbidden);
+                return BadRequest("Acesso negado!");
+                //return StatusCode(HttpStatusCode.Forbidden);
             }
         }
 
@@ -221,43 +233,187 @@ namespace dm106_final_project.Controllers
         [ResponseType(typeof(string))]
         [HttpGet]
         [Route("frete")]
-        public IHttpActionResult CalculaFrete()
+        public IHttpActionResult CalculaFrete(int id)
         {
-            string frete;
-            CalcPrecoPrazoWS correios = new CalcPrecoPrazoWS();
-            cResultado resultado = correios.CalcPrecoPrazo("", "",
-            "40010", "37540000", "37002970", "1", 1, 30, 30, 30, 30, "N", 100, "S");
-            if (resultado.Servicos[0].Erro.Equals("0"))
+
+            Order order = db.Orders.Find(id);
+
+            var usrID = HttpContext.Current.User.Identity.GetUserId();
+            ApplicationDbContext dbContext = new ApplicationDbContext();
+            var mailUserLogged = dbContext.Users.Find(usrID).Email;
+
+            if (mailUserLogged == order.userMail || User.IsInRole("ADMIN"))
             {
-                frete = "Valor do frete: " + resultado.Servicos[0]
-                .Valor + " - Prazo de entrega: " + resultado.Servicos[0].PrazoEntrega + " dia(s)";
-                return Ok(frete);
+
+                if (order == null)
+                {
+                    return BadRequest("Pedido não existe!");
+                }
+
+                if (order.OrderItems.Count == 0)
+                {
+                    return BadRequest("Pedido sem itens!");
+                }
+
+                if (order.status != "novo")
+                {
+                    return BadRequest("Pedido não está com status de novo!");
+                }
+
+                string cepDest = getCEP(order.userMail);
+                if (cepDest == "0")
+                {
+                    return BadRequest("Falha ao consultar o CRM!");
+                }
+
+                decimal valorTotal = calcValorTotal(order);
+                decimal peso = calcPesoTotal(order);
+                //para calculo do comprimento, altura, largura e diametro sempre pego o valor mais alto de cada item no pedido.
+                decimal comprimento = calcComprimento(order);
+                decimal altura = calcAltura(order);
+                decimal largura = calcLargura(order);
+                decimal diametro = calcDiametro(order);
+
+                string freteMsg;
+                string frete;
+                DateTime prazoEntrega;
+                CalcPrecoPrazoWS correios = new CalcPrecoPrazoWS();
+                cResultado resultado = correios.CalcPrecoPrazo("", "", "40010", "37540000", cepDest, peso.ToString(), 1,
+                    comprimento, altura, largura, diametro, "N", valorTotal, "S");
+
+                if (resultado.Servicos[0].Erro.Equals("0"))
+                {
+                    frete = resultado.Servicos[0].Valor;
+                    prazoEntrega = DateTime.Today.AddDays(Convert.ToInt16(resultado.Servicos[0].PrazoEntrega));
+                    freteMsg = "Valor do frete: " + resultado.Servicos[0]
+                    .Valor + " - Prazo de entrega: " + resultado.Servicos[0].PrazoEntrega + " dia(s)";
+
+                    order.pesoTotal = peso;
+                    order.precoFrete = decimal.Parse(frete);
+                    order.precoTotal = valorTotal;
+
+                    db.Entry(order).State = EntityState.Modified;
+                    try
+                    {
+                        db.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        if (!OrderExists(id))
+                        {
+                            return NotFound();
+                        }
+                    }
+
+                    return Ok(freteMsg);
+                }
+                else
+                {
+                    return BadRequest("Código do erro: " + resultado.Servicos[0].Erro + "-" + resultado.Servicos[0].MsgErro);
+                }
             }
             else
             {
-                return BadRequest("Código do erro: " + resultado.Servicos[0].Erro + "-" + resultado.Servicos[0].MsgErro);
+                return BadRequest("Acesso negado!");
             }
-        }
+        } 
 
 
-        [ResponseType(typeof(string))]
-        [HttpGet]
-        [Route("cep")]
-        public IHttpActionResult getCEP()
+    
+
+
+    public string getCEP(string mail)
         {
+            string cep = "0";
             CRMRestClient crmClient = new CRMRestClient();
-            Customer customer = crmClient.GetCustomerByEmail(User.
-            Identity.Name);
+            Customer customer = crmClient.GetCustomerByEmail(mail);
             if (customer != null)
             {
-                return Ok(customer.zip);
+                cep = customer.zip;
             }
-            else
+
+            return cep;
+        }
+         
+        public decimal calcValorTotal(Order order)
+        {
+            decimal valorTotal = 0;
+            foreach(OrderItem item in order.OrderItems )
             {
-                return BadRequest("Falha ao consultar o CRM");
+                valorTotal += item.quantidade * item.Product.preco;
+
             }
+            return valorTotal;
+
+        }
+        public decimal calcPesoTotal(Order order)
+        {
+
+            decimal pesoTotal = 0;
+            foreach (OrderItem item in order.OrderItems)
+            {
+                pesoTotal += item.Product.peso;
+
+            }
+            return pesoTotal;
+
+        }
+        public decimal calcComprimento(Order order)
+        {
+
+            List<decimal> comprimentoList = new List<decimal>();
+            decimal comprimento = 0;
+            foreach (OrderItem item in order.OrderItems)
+            {
+                comprimentoList.Add(item.Product.comprimento);
+
+            }
+            comprimento = comprimentoList.Max();
+            return comprimento;
+
+        }
+        public decimal calcAltura(Order order)
+        {
+
+            List<decimal> alturaList = new List<decimal>();
+            decimal altura = 0;
+            foreach (OrderItem item in order.OrderItems)
+            {
+                alturaList.Add(item.Product.altura);
+
+            }
+            altura = alturaList.Max();
+            return altura;
+        }
+        public decimal calcLargura(Order order)
+        {
+
+            List<decimal> larguraList = new List<decimal>();
+            decimal largura = 0;
+            foreach (OrderItem item in order.OrderItems)
+            {
+                larguraList.Add(item.Product.largura);
+
+            }
+            largura = larguraList.Max();
+            return largura;
+
         }
 
+        public decimal calcDiametro(Order order)
+        {
+
+            List<decimal> diametroList = new List<decimal>();
+            decimal diametro = 0;
+            foreach (OrderItem item in order.OrderItems)
+            {
+                diametroList.Add(item.Product.diametro);
+
+            }
+            diametro = diametroList.Max();
+            return diametro;
+
+        }
 
         protected override void Dispose(bool disposing)
         {
