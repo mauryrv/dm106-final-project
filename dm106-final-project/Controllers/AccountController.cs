@@ -346,7 +346,7 @@ namespace dm106_final_project.Controllers
                     return GetErrorResult(result);
                 }
             }
-            return Ok();
+            return Ok("Usuário criado com sucesso!");
         }
 
         // POST api/Account/RegisterExternal

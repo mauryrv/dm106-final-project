@@ -54,9 +54,8 @@ namespace dm106_final_project.Controllers
                 return BadRequest("Acesso negado!");
             }
         }
-
+        
         [ResponseType(typeof(List<Order>))]
-        [HttpGet]
         [Route("byEmail")]
         public IHttpActionResult GetOrderbyEmail(string email)
         {
@@ -82,7 +81,7 @@ namespace dm106_final_project.Controllers
                 return BadRequest("Acesso negado!");
             }
         }
-
+        
         // PUT: api/Orders/5
         [ResponseType(typeof(void))]
         public IHttpActionResult PutOrder(int id, Order order)
@@ -120,6 +119,7 @@ namespace dm106_final_project.Controllers
 
         // POST: api/Orders
         [ResponseType(typeof(Order))]
+        [HttpPost]
         public IHttpActionResult PostOrder(Order order)
         {
             if (!ModelState.IsValid)
@@ -177,6 +177,7 @@ namespace dm106_final_project.Controllers
 
 
         }
+
         [ResponseType(typeof(string))]
         [HttpPut]
         [Route("close")]
@@ -227,9 +228,7 @@ namespace dm106_final_project.Controllers
                 //return StatusCode(HttpStatusCode.Forbidden);
             }
         }
-
-
-
+        
         [ResponseType(typeof(string))]
         [HttpGet]
         [Route("frete")]
@@ -316,13 +315,9 @@ namespace dm106_final_project.Controllers
             {
                 return BadRequest("Acesso negado!");
             }
-        } 
+        }
 
-
-    
-
-
-    public string getCEP(string mail)
+        private string getCEP(string mail)
         {
             string cep = "0";
             CRMRestClient crmClient = new CRMRestClient();
@@ -334,8 +329,8 @@ namespace dm106_final_project.Controllers
 
             return cep;
         }
-         
-        public decimal calcValorTotal(Order order)
+
+        private decimal calcValorTotal(Order order)
         {
             decimal valorTotal = 0;
             foreach(OrderItem item in order.OrderItems )
@@ -346,7 +341,8 @@ namespace dm106_final_project.Controllers
             return valorTotal;
 
         }
-        public decimal calcPesoTotal(Order order)
+
+        private decimal calcPesoTotal(Order order)
         {
 
             decimal pesoTotal = 0;
@@ -358,7 +354,8 @@ namespace dm106_final_project.Controllers
             return pesoTotal;
 
         }
-        public decimal calcComprimento(Order order)
+
+        private decimal calcComprimento(Order order)
         {
 
             List<decimal> comprimentoList = new List<decimal>();
@@ -372,7 +369,8 @@ namespace dm106_final_project.Controllers
             return comprimento;
 
         }
-        public decimal calcAltura(Order order)
+
+        private decimal calcAltura(Order order)
         {
 
             List<decimal> alturaList = new List<decimal>();
@@ -385,7 +383,8 @@ namespace dm106_final_project.Controllers
             altura = alturaList.Max();
             return altura;
         }
-        public decimal calcLargura(Order order)
+
+        private decimal calcLargura(Order order)
         {
 
             List<decimal> larguraList = new List<decimal>();
@@ -400,7 +399,7 @@ namespace dm106_final_project.Controllers
 
         }
 
-        public decimal calcDiametro(Order order)
+        private decimal calcDiametro(Order order)
         {
 
             List<decimal> diametroList = new List<decimal>();
@@ -414,7 +413,7 @@ namespace dm106_final_project.Controllers
             return diametro;
 
         }
-
+       
         protected override void Dispose(bool disposing)
         {
             if (disposing)

@@ -12,7 +12,7 @@ using dm106_final_project.Models;
 
 namespace dm106_final_project.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "ADMIN, USER")]
     public class ProductsController : ApiController
     {
         private dm106_final_projectContext db = new dm106_final_projectContext();
