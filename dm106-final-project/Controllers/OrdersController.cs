@@ -13,6 +13,7 @@ using Microsoft.AspNet.Identity;
 using System.Web;
 using dm106_final_project.CRMClient;
 using dm106_final_project.br.com.correios.ws;
+using System.Globalization;
 
 namespace dm106_final_project.Controllers
 {
@@ -24,9 +25,22 @@ namespace dm106_final_project.Controllers
 
         // GET: api/Orders
         [Authorize(Roles = "ADMIN")]
-        public IQueryable<Order> GetOrders()
+        [ResponseType(typeof(List<Order>))]
+        public IHttpActionResult GetOrders()
         {
-            return db.Orders;
+            List<Order> orders = new List<Order>();
+            orders = db.Orders.ToList();
+
+            if (orders.Count > 0)
+            {
+                return Ok(orders);
+            }
+            else
+            {
+                return BadRequest("Não existe pedidos cadastrados!");
+
+            }
+            //return db.Orders;
         }
 
         // GET: api/Orders/5
@@ -40,11 +54,7 @@ namespace dm106_final_project.Controllers
                 return BadRequest("Pedido não encontrado!");
             }
 
-            var usrID = HttpContext.Current.User.Identity.GetUserId();
-            ApplicationDbContext dbContext = new ApplicationDbContext();
-            var mailUserLogged = dbContext.Users.Find(usrID).Email;
-
-            if (mailUserLogged == order.userMail || User.IsInRole("ADMIN"))
+            if (User.Identity.Name == order.userMail || User.IsInRole("ADMIN"))
             {
 
                 return Ok(order);
@@ -60,18 +70,14 @@ namespace dm106_final_project.Controllers
         public IHttpActionResult GetOrderbyEmail(string email)
         {
             List<Order> orders = new List<Order>();
-            orders = db.Orders.Where(c => c.userMail == email).ToList(); ;
+            orders = db.Orders.Where(c => c.userMail == email).ToList();
 
             if (orders.Count == 0)
             {
                 return BadRequest("Não há pedidos para o email pesquisado!");
             }
 
-            var usrID = HttpContext.Current.User.Identity.GetUserId();
-            ApplicationDbContext dbContext = new ApplicationDbContext();
-            var mailUserLogged = dbContext.Users.Find(usrID).Email;
-
-            if (mailUserLogged == orders[0].userMail || User.IsInRole("ADMIN"))
+            if (User.Identity.Name == orders[0].userMail || User.IsInRole("ADMIN"))
             {
 
                 return Ok(orders);
@@ -81,8 +87,9 @@ namespace dm106_final_project.Controllers
                 return BadRequest("Acesso negado!");
             }
         }
-        
+
         // PUT: api/Orders/5
+        [Authorize(Roles = "ADMIN")]
         [ResponseType(typeof(void))]
         public IHttpActionResult PutOrder(int id, Order order)
         {
@@ -114,7 +121,7 @@ namespace dm106_final_project.Controllers
                 }
             }
             return BadRequest("Pedido atualizado!");
-            //return StatusCode(HttpStatusCode.NoContent);
+
         }
 
         // POST: api/Orders
@@ -122,8 +129,10 @@ namespace dm106_final_project.Controllers
         [HttpPost]
         public IHttpActionResult PostOrder(Order order)
         {
+
             if (!ModelState.IsValid)
             {
+                
                 return BadRequest(ModelState);
             }
 
@@ -133,11 +142,7 @@ namespace dm106_final_project.Controllers
             order.precoTotal = 0;
             order.dataPedido = DateTime.Now;
 
-            var usrID = HttpContext.Current.User.Identity.GetUserId();
-            ApplicationDbContext dbContext = new ApplicationDbContext();
-            var mailUserLogged = dbContext.Users.Find(usrID).Email;
-
-            order.userMail = mailUserLogged;
+            order.userMail = User.Identity.Name;
 
             db.Orders.Add(order);
             db.SaveChanges();
@@ -155,12 +160,7 @@ namespace dm106_final_project.Controllers
                 return BadRequest("Pedido não encontrado!");
             }
 
-
-            var usrID = HttpContext.Current.User.Identity.GetUserId();
-            ApplicationDbContext dbContext = new ApplicationDbContext();
-            var mailUserLogged = dbContext.Users.Find(usrID).Email;
-
-            if (mailUserLogged == order.userMail || User.IsInRole("ADMIN"))
+            if (User.Identity.Name == order.userMail || User.IsInRole("ADMIN"))
             {
 
                 db.Orders.Remove(order);
@@ -190,11 +190,7 @@ namespace dm106_final_project.Controllers
                 return BadRequest("Pedido não encontrado!");
             }
 
-            var usrID = HttpContext.Current.User.Identity.GetUserId();
-            ApplicationDbContext dbContext = new ApplicationDbContext();
-            var mailUserLogged = dbContext.Users.Find(usrID).Email;
-
-            if (mailUserLogged == order.userMail || User.IsInRole("ADMIN"))
+            if (User.Identity.Name == order.userMail || User.IsInRole("ADMIN"))
             {
                 if (order.precoFrete != 0)
                 {
@@ -225,7 +221,7 @@ namespace dm106_final_project.Controllers
             else
             {
                 return BadRequest("Acesso negado!");
-                //return StatusCode(HttpStatusCode.Forbidden);
+                
             }
         }
         
@@ -237,11 +233,7 @@ namespace dm106_final_project.Controllers
 
             Order order = db.Orders.Find(id);
 
-            var usrID = HttpContext.Current.User.Identity.GetUserId();
-            ApplicationDbContext dbContext = new ApplicationDbContext();
-            var mailUserLogged = dbContext.Users.Find(usrID).Email;
-
-            if (mailUserLogged == order.userMail || User.IsInRole("ADMIN"))
+            if (User.Identity.Name == order.userMail || User.IsInRole("ADMIN"))
             {
 
                 if (order == null)
@@ -268,9 +260,9 @@ namespace dm106_final_project.Controllers
                 decimal valorTotal = calcValorTotal(order);
                 decimal peso = calcPesoTotal(order);
                 //para calculo do comprimento, altura, largura e diametro sempre pego o valor mais alto de cada item no pedido.
-                decimal comprimento = calcComprimento(order);
+                decimal comprimento = (calcComprimento(order)<16) ? 16 : calcComprimento(order);
                 decimal altura = calcAltura(order);
-                decimal largura = calcLargura(order);
+                decimal largura = (calcLargura(order)<11) ? 11 : calcLargura(order);
                 decimal diametro = calcDiametro(order);
 
                 string freteMsg;
@@ -288,8 +280,9 @@ namespace dm106_final_project.Controllers
                     .Valor + " - Prazo de entrega: " + resultado.Servicos[0].PrazoEntrega + " dia(s)";
 
                     order.pesoTotal = peso;
-                    order.precoFrete = decimal.Parse(frete);
+                    order.precoFrete = decimal.Parse(frete, new CultureInfo("pt-BR", false).NumberFormat);
                     order.precoTotal = valorTotal;
+                    order.dataEntrega = prazoEntrega;
 
                     db.Entry(order).State = EntityState.Modified;
                     try
